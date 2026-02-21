@@ -28,12 +28,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
+# Download Timeweb Cloud CA certificate for sslmode=verify-full
+RUN apk add --no-cache curl && \
+    mkdir -p /app/certs && \
+    curl -fsSL -o /app/certs/root.crt "https://st.timeweb.com/cloud-static/ca.crt" && \
+    apk del curl
+
+ENV PGSSLROOTCERT=/app/certs/root.crt
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+RUN chown nextjs:nodejs /app/certs/root.crt
 
 USER nextjs
 
