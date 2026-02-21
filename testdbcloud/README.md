@@ -2,6 +2,22 @@
 
 ## 1) Environment
 
+### Timeweb Cloud SSL certificate (one-time)
+
+```bash
+mkdir -p ~/.cloud-certs && \
+curl -o ~/.cloud-certs/root.crt "https://st.timeweb.com/cloud-static/ca.crt" && \
+chmod 0600 ~/.cloud-certs/root.crt
+```
+
+Export for the current shell (or add to `.env.local`, see below):
+
+```bash
+export PGSSLROOTCERT=$HOME/.cloud-certs/root.crt
+```
+
+### Local env
+
 Create local env from `.env.example`:
 
 ```bash
@@ -14,10 +30,17 @@ Set `POSTGRESQL_PASSWORD` in `.env.local`, then URL-encode it:
 node -e "console.log(encodeURIComponent('YOUR_PASSWORD'))"
 ```
 
-Put encoded password into `DATABASE_URL`:
+Put encoded password into `DATABASE_URL` in `.env.local`. Optionally set `PGSSLROOTCERT` so Prisma/Next.js use the CA cert (use `$HOME`, not `~`):
 
 ```env
-DATABASE_URL="postgresql://AI_agent:URL_ENCODED_PASSWORD@77.232.135.105:5432/dev_db?sslmode=require"
+PGSSLROOTCERT=/Users/YOUR_USERNAME/.cloud-certs/root.crt
+DATABASE_URL="postgresql://AI_agent:URL_ENCODED_PASSWORD@e04e3afa27491e34d1a72107.twc1.net:5432/dev_db?sslmode=verify-full"
+```
+
+Connect with psql:
+
+```bash
+psql 'postgresql://AI_agent:URL_ENCODED_PASSWORD@e04e3afa27491e34d1a72107.twc1.net:5432/dev_db?sslmode=verify-full'
 ```
 
 ## 2) Apply schema
