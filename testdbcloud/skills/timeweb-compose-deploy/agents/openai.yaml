@@ -1,0 +1,4 @@
+interface:
+  display_name: "Timeweb Compose Deploy"
+  short_description: "Configure Docker Compose deploys for Timeweb Cloud Apps"
+  default_prompt: "Use $timeweb-compose-deploy to prepare and validate a Docker Compose deployment for Timeweb App Platform."

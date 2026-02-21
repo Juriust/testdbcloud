@@ -13,12 +13,46 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  JUNIOR_ADMIN
+  ADMIN
+}
+
+enum ResetCodeIssuer {
+  EMAIL
+  ADMIN
+  JUNIOR_ADMIN
+}
+
+enum AuditEvent {
+  AUTH_LOGIN_SUCCESS
+  AUTH_LOGIN_FAIL
+  RESET_CODE_ISSUED
+  RESET_CODE_CONSUMED
+  ROLE_CHANGED
+  ADMIN_RESET_ISSUED
+  USER_DEACTIVATED
+}
+
 model User {
-  id       String  @id @default(cuid())
-  name     String?
-  email    String  @unique
-  password String
-  posts    Post[]
+  id              String              @id @default(cuid())
+  name            String?
+  email           String              @unique
+  passwordHash    String
+  role            Role                @default(USER)
+  deletedAt       DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  posts           Post[]
+  resetCodes      PasswordResetCode[] @relation("UserResetCodes")
+  issuedResetCodes PasswordResetCode[] @relation("IssuedResetCodes")
+  actorAuditLogs  AuditLog[]          @relation("AuditActor")
+  targetAuditLogs AuditLog[]          @relation("AuditTarget")
+
+  @@index([deletedAt])
+  @@index([role, deletedAt])
 }
 
 model Post {
@@ -30,4 +64,53 @@ model Post {
   published Boolean  @default(false)
   authorId  String?
   author    User?    @relation(fields: [authorId], references: [id])
+}
+
+model PasswordResetCode {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation("UserResetCodes", fields: [userId], references: [id], onDelete: Cascade)
+  codeHash       String
+  expiresAt      DateTime
+  attempts       Int             @default(0)
+  consumedAt     DateTime?
+  invalidatedAt  DateTime?
+  issuedBy       ResetCodeIssuer
+  issuedByUserId String?
+  issuedByUser   User?           @relation("IssuedResetCodes", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@index([userId, consumedAt, invalidatedAt])
+}
+
+model AuditLog {
+  id           String     @id @default(cuid())
+  event        AuditEvent
+  actorUserId  String?
+  actorUser    User?      @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  targetUserId String?
+  targetUser   User?      @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+
+  @@index([event, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  scope       String
+  keyHash     String
+  hits        Int      @default(0)
+  windowStart DateTime
+  blockedUntil DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([scope, keyHash])
+  @@index([scope, blockedUntil])
 }

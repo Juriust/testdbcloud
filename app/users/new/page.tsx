@@ -3,16 +3,20 @@ export const dynamic = "force-dynamic"; // This disables SSG and ISR
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Form from "next/form";
+import { hashPassword } from "@/lib/security/password";
+import { normalizeEmail } from "@/lib/security/email";
 
 export default function NewUser() {
   async function createUser(formData: FormData) {
     "use server";
 
     const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
+    const email = normalizeEmail(formData.get("email") as string);
+
+    const passwordHash = await hashPassword(crypto.randomUUID());
 
     await prisma.user.create({
-      data: { name, email, password: "" }, // password will be added by NextAuth
+      data: { name, email, passwordHash },
     });
 
     redirect("/");

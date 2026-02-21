@@ -1,0 +1,15 @@
+node_modules
+.next
+.env*
+!.env.example
+.git
+.gitignore
+.vscode
+.cursor
+.venv-skill
+skills
+references
+scripts
+*.md
+.DS_Store
+npm-debug.log*

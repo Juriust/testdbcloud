@@ -7,6 +7,12 @@
     "build": "npx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm test:smoke",
+    "test:smoke": "tsx --test tests/smoke/*.test.ts",
+    "db:dev": "npx prisma dev",
+    "db:migrate:dev": "node scripts/guard-env.mjs npx prisma migrate dev",
+    "db:seed": "node scripts/guard-env.mjs npx prisma db seed",
     "postinstall": "npx prisma generate"
   },
   "dependencies": {

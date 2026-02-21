@@ -1,168 +1,123 @@
-# Next.js & Prisma Postgres Auth Starter
+# Next.js + Prisma Auth Starter (Local Prisma Postgres)
 
-This repository provides a boilerplate to quickly set up a Next.js demo application with authentication using [NextAuth.js v4](https://next-auth.js.org/), [Prisma Postgres](https://www.prisma.io/postgres) and [Prisma ORM](https://www.prisma.io/orm), and deploy it to Vercel. It includes an easy setup process and example routes that demonstrate basic CRUD operations against the database.
+MVP starter with email/password auth, RBAC, password reset codes, admin user management, and security-focused defaults.
 
-## Features
+## Stack
 
-- Next.js 15 app with App Router, Server Actions & API Routes
-- Data modeling, database migrations, seeding & querying
-- Log in and sign up authentication flows
-- CRUD operations to create, view and delete blog posts
-- Pagination, filtering & relations queries
+- Next.js 16 (App Router)
+- NextAuth v4 credentials auth
+- Prisma ORM + Prisma Postgres local dev
+- PostgreSQL via `npx prisma dev`
 
-## Getting started
+## Security defaults
 
-### 1. Install dependencies
+- Passwords and reset codes are stored as hashes only.
+- Reset flow uses 6-digit codes, TTL, single active code, attempts limit.
+- RBAC is centralized via `requireRole`.
+- Login/reset endpoints apply rate limiting.
+- No-PII logging policy for sensitive auth data.
+- Soft-delete for users (`deletedAt`) with login blocked for deactivated users.
 
-After cloning the repo and navigating into it, install dependencies:
+## Roles
 
-```
-npm install
-```
+- `USER`
+- `JUNIOR_ADMIN`
+- `ADMIN`
 
-### 1. Create a Prisma Postgres instance
+Permissions:
 
-Create a Prisma Postgres instance by running the following command:
+- `ADMIN` and `JUNIOR_ADMIN` can view `/admin/users`.
+- Only `ADMIN` can change roles and deactivate users.
+- `ADMIN` and `JUNIOR_ADMIN` can issue reset codes, but `JUNIOR_ADMIN` only for `USER` targets.
 
-```
-npx prisma init --db
-```
+## Requirements
 
-This command is interactive and will prompt you to:
+- Node.js `20.19+`, `22.12+`, or `24+` (Prisma 7 supported ranges)
+- pnpm `9+`
 
-1. Log in to the [Prisma Console](https://console.prisma.io)
-1. Select a **region** for your Prisma Postgres instance
-1. Give a **name** to your Prisma project
+## Fresh start (local)
 
-Once the command has terminated, copy the **Database URL** from the terminal output. You'll need it in the next step when you configure your `.env` file.
-
-<!-- Create a Prisma Postgres database instance using [Prisma Data Platform](https://console.prisma.io):
-
-1. Navigate to [Prisma Data Platform](https://console.prisma.io).
-2. Click **New project** to create a new project.
-3. Enter a name for your project in the **Name** field.
-4. Inside the **Prisma Postgres** section, click **Get started**.
-5. Choose a region close to your location from the **Region** dropdown.
-6. Click **Create project** to set up your database. This redirects you to the database setup page.
-7. In the **Set up database access** section, copy the `DATABASE_URL`. You will use this in the next steps. -->
-
-### 2. Set up your `.env` file
-
-You now need to configure your database connection via an environment variable.
-
-First, create an `.env` file:
+1. Install dependencies:
 
 ```bash
-touch .env
+pnpm install
 ```
 
-Then update the `.env` file by replacing the existing `DATABASE_URL` value with the one you previously copied. It will look similar to this:
+2. Start local Prisma Postgres and copy `DATABASE_URL`:
 
 ```bash
-DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=PRISMA_POSTGRES_API_KEY"
+npx prisma dev
 ```
 
-To ensure your authentication works properly, you'll also need to set [env vars for NextAuth.js](https://next-auth.js.org/configuration/options):
+3. Create env file:
 
 ```bash
-AUTH_SECRET="RANDOM_32_CHARACTER_STRING"
+cp .env.example .env.local
 ```
 
-You can generate a random 32 character string for the `AUTH_SECRET` secret with this command:
+4. Set `DATABASE_URL` in `.env.local` from `npx prisma dev` output.
 
-```
-npx auth secret
-```
-
-In the end, your entire `.env` file should look similar to this (but using _your own values_ for the env vars):
+5. Run migrations:
 
 ```bash
-DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlfa2V5IjoiMWEzMjBiYTEtYjg2Yy00ZTA5LThmZTktZDBhODA3YjQwZjBkIiwidGVuYW50X2lkIjoiY2RhYmM3ZTU1NzdmMmIxMmM0ZTI1Y2IwNWJhZmZhZmU4NjAxNzkxZThlMzhlYjI1NDgwNmIzZjI5NmU1NTkzNiIsImludGVybmFsX3NlY3JldCI6ImI3YmQzMjFhLTY2ODQtNGRiMC05ZWRiLWIyMGE2ZTQ0ZDMwMSJ9.JgKXQBatjjh7GIG3_fRHDnia6bDv8BdwvaX5F-XdBfw"
-
-AUTH_SECRET="gTwLSXFeNWFRpUTmxlRniOfegXYw445pd0k6JqXd7Ag="
+pnpm db:migrate:dev
 ```
 
-### 3. Migrate the database
-
-Run the following commands to set up your database and Prisma schema:
+6. Seed data:
 
 ```bash
-npx prisma migrate dev --name init
+pnpm db:seed
 ```
 
-<!--
-<details>
-
-<summary>Expand for <code>yarn</code>, <code>pnpm</code> or <code>bun</code></summary>
+7. Run app:
 
 ```bash
-# Using yarn
-yarn prisma migrate dev --name init
-
-# Using pnpm
-pnpm prisma migrate dev --name init
-
-# Using bun
-bun prisma migrate dev --name init
+pnpm dev
 ```
 
-</details> -->
-
-### 4. Seed the database
-
-Add initial data to your database:
+8. (Optional) Open Prisma Studio:
 
 ```bash
-npx prisma db seed
+npx prisma studio
 ```
 
-<details>
+## Scripts
 
-<summary>Expand for <code>yarn</code>, <code>pnpm</code> or <code>bun</code></summary>
+- `pnpm dev`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm test:smoke`
+- `pnpm db:dev`
+- `pnpm db:migrate:dev`
+- `pnpm db:seed`
+
+## Production safety guard
+
+`db:migrate:dev` and `db:seed` are wrapped by `scripts/guard-env.mjs`.
+
+If `APP_ENV=prod`, destructive commands are blocked unless you explicitly set:
 
 ```bash
-# Using yarn
-yarn prisma db seed
-
-# Using pnpm
-pnpm prisma db seed
-
-# Using bun
-bun prisma db seed
+I_UNDERSTAND_PROD=1
 ```
 
-</details>
+## Main routes
 
-### 5. Run the app
+Public auth:
 
-Start the development server:
+- `POST /api/auth/register`
+- `POST /api/auth/password/request-code`
+- `POST /api/auth/password/confirm`
 
-```bash
-npm run dev
-```
+Admin:
 
-<details>
+- `GET /api/admin/users`
+- `POST /api/admin/users/:id/role`
+- `POST /api/admin/users/:id/deactivate`
+- `POST /api/admin/users/:id/reset-code`
 
-<summary>Expand for <code>yarn</code>, <code>pnpm</code> or <code>bun</code></summary>
+## Docs
 
-```bash
-# Using yarn
-yarn dev
-
-# Using pnpm
-pnpm run dev
-
-# Using bun
-bun run dev
-```
-
-</details>
-
-Once the server is running, visit `http://localhost:3000` to start using the app.
-
-## Next steps
-
-- [Prisma ORM documentation](https://www.prisma.io/docs/orm)
-- [Prisma Client API reference](https://www.prisma.io/docs/orm/prisma-client)
-- [Join our Discord community](https://discord.com/invite/prisma)
-- [Follow us on Twitter](https://twitter.com/prisma)
+- Process playbook: `docs/skill_dev_playbook.md`
+- Implementation tracker: `docs/implementation_plan.md`

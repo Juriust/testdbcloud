@@ -13,8 +13,29 @@ export default function RegisterPage() {
     try {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
+      const payload = {
+        name: String(formData.get("name") ?? ""),
+        email: String(formData.get("email") ?? ""),
+        password: String(formData.get("password") ?? ""),
+      };
+
+      const registerResponse = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!registerResponse.ok) {
+        const data = await registerResponse.json().catch(() => null) as { error?: string } | null;
+        setError(data?.error ?? "Registration failed");
+        return;
+      }
+
       const signInResult = await signIn("credentials", {
-        ...Object.fromEntries(formData),
+        email: payload.email,
+        password: payload.password,
         redirect: false,
       });
 
@@ -25,8 +46,8 @@ export default function RegisterPage() {
 
       router.push("/");
       router.refresh();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Registration failed");
+    } catch {
+      setError("Registration failed");
     }
   }
 

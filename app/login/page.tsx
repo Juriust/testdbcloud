@@ -82,6 +82,9 @@ export default function LoginPage() {
           </div>
         </form>
         <div className="text-center">
+          <Link href="/password-reset" className="text-blue-600 hover:underline block mb-2">
+            Forgot password?
+          </Link>
           <Link href="/register" className="text-blue-600 hover:underline">
             No account? Register.
           </Link>

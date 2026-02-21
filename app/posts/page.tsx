@@ -36,8 +36,9 @@ function PostsList() {
         const data = await res.json();
         setPosts(data.posts);
         setTotalPages(data.totalPages);
-      } catch (error) {
-        console.error("Error fetching posts:", error);
+      } catch {
+        setPosts([]);
+        setTotalPages(1);
       } finally {
         setIsLoading(false);
       }

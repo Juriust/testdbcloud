@@ -1,0 +1,14 @@
+{
+    "mcp.servers": {
+        "timeweb-mcp-server": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "timeweb-mcp-server"
+            ],
+            "env": {
+                "TIMEWEB_TOKEN": "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6IjFrYnhacFJNQGJSI0tSbE1xS1lqIn0.eyJ1c2VyIjoia2U2NTkwMzQiLCJ0eXBlIjoiYXBpX2tleSIsImFwaV9rZXlfaWQiOiI3MGZhNDhmZC1jNDRkLTRmODktYTc5MC1jNDJiNWRjZmY2ZDMiLCJpYXQiOjE3NzE3MDUwMjgsImV4cCI6MTc3NDI5NzAyN30.o9OxJlohoO0TJmnfxrF8QE3-TEXZ2tJMGaEyzFJKFOnlWQIba1WlHhDw5gVhBT10jLEWR2MM3YkRVCpb61MPlv2DA-HNZ7cEib5sLQi3m3M1Yvf2Oqom-L0Mtwl9TI0I_6tqp-vMfzs1g5p7hUIDiQO_SeDdkjAUCJysq_uX0IcHx4rCY6hWYY3xBjZY61z1v7WjMZXMsATsZOTu0tUwhzuG2RdJ_rtPT-m5smrmY1ET9LkHLvvX7CjGVK24Q6FCp7n_WFwxOeDNONo_mLUbSAX6z6IxrZSSWXBhax1OLSCip8QzzepiDKKIdptD0uCWSVe9LYUDDiImKH6D79-ZNGtqtKkXEZV1ZkFrNJakqbP2p17oLSp64tlZhKYQ4JKZjWt5KdwFypSxYKu8r10PN2QrmEVbKoKeVE7XjPVhfvBDBa-FiVf4PprzVDEKdV-BuCu5zD7hL48jQk4Wu0pVEaGlb0DkbUfKvUQlb1Z8qo7IdRDCiKqSiHw9q00GgKjV"
+            }
+        }
+    }
+}

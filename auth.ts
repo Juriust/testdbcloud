@@ -1,7 +1,23 @@
-import CredentialsProvider from "next-auth/providers/credentials";
-import { type NextAuthOptions } from "next-auth";
+import { writeAuditLog } from "@/lib/audit";
+import { isProdAppEnv } from "@/lib/env";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { normalizeEmail } from "@/lib/security/email";
+import { getClientIp } from "@/lib/security/ip";
+import { verifyPassword } from "@/lib/security/password";
+import {
+  assertRateLimit,
+  rateLimitRules,
+  RateLimitExceededError,
+} from "@/lib/security/rate-limit";
+import { AuditEvent } from "@/prisma/generated/client";
+import { type NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+
+const DUMMY_BCRYPT_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcXeOi5V5n7V6czS4QhIwTZPIYOvTo95OfzK";
+const SECURE_COOKIES = isProdAppEnv();
+const SESSION_COOKIE_NAME = SECURE_COOKIES
+  ? "__Secure-next-auth.session-token"
+  : "next-auth.session-token";
 
 export const authOptions = {
   providers: [
@@ -9,50 +25,119 @@ export const authOptions = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        name: { label: "Name", type: "name" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+          return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        const normalizedEmail = normalizeEmail(credentials.email);
+        const ipAddress = getClientIp({ headers: req?.headers });
+
+        try {
+          await assertRateLimit(ipAddress, rateLimitRules.loginByIp);
+          await assertRateLimit(normalizedEmail, rateLimitRules.loginByAccount);
+        } catch (error) {
+          if (error instanceof RateLimitExceededError) {
+            await writeAuditLog({
+              event: AuditEvent.AUTH_LOGIN_FAIL,
+              metadata: {
+                reason: "rate_limited",
+              },
+            });
+            return null;
+          }
+          throw error;
+        }
+
+        const user = await prisma.user.findFirst({
+          where: {
+            email: normalizedEmail,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            passwordHash: true,
+          },
         });
 
-        if (!user) {
-          return await prisma.user.create({
-            data: {
-              name: credentials.name ?? credentials.email,
-              email: credentials.email,
-              password: await bcrypt.hash(credentials.password, 10),
+        const passwordHash = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
+        const isCorrectPassword = await verifyPassword(credentials.password, passwordHash);
+
+        if (!user || !isCorrectPassword) {
+          await writeAuditLog({
+            event: AuditEvent.AUTH_LOGIN_FAIL,
+            targetUserId: user?.id,
+            metadata: {
+              reason: "invalid_credentials",
             },
           });
+          return null;
         }
 
-        const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        await prisma.user.update({
+          where: {
+            id: user.id,
+          },
+          data: {
+            lastLoginAt: new Date(),
+          },
+        });
 
-        if (!isCorrectPassword) {
-          throw new Error("Invalid credentials");
-        }
+        await writeAuditLog({
+          event: AuditEvent.AUTH_LOGIN_SUCCESS,
+          actorUserId: user.id,
+          targetUserId: user.id,
+        });
 
-        return user;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
   ],
   pages: {
     signIn: "/login",
   },
+  session: {
+    strategy: "jwt",
+  },
+  useSecureCookies: SECURE_COOKIES,
+  cookies: {
+    sessionToken: {
+      name: SESSION_COOKIE_NAME,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: SECURE_COOKIES,
+      },
+    },
+  },
+  secret: process.env.AUTH_SECRET,
   callbacks: {
     async jwt({ token, user }) {
-      return { ...token, id: token.id ?? user?.id };
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.email = user.email;
+      }
+      return token;
     },
     async session({ session, token }) {
-      return { ...session, user: { ...session.user, id: token.id } };
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.email = token.email ?? session.user.email;
+      }
+      return session;
     },
   },
 } satisfies NextAuthOptions;
